@@ -18,7 +18,7 @@
 ```
 {
 	"comando": "controlador",
-	"porta": <inteiro>
+	"porta": <int>
 }
 ```
 - ATUALIZACAO DE CONSUMO
