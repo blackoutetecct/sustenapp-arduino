@@ -4,6 +4,7 @@
 const int LIMITE = 13, LED = 3, RX = 1, TX = 0;
 const int portasSaida[LIMITE] = {LED};
 const int portasEntrada[LIMITE] = {};
+const int CAPACITY = 96;
 
 SoftwareSerial bluetooh(RX, TX);
 StaticJsonDocument<CAPACITY> JSON;
@@ -34,31 +35,33 @@ void declaraPortasDeSaida() {
         }
 
         pinMode(portasSaida[i], OUTPUT);
+        digitalWrite(portasSaida[i], LOW);
     }
 }
 
 void leituraBluetooth() {
     if(bluetooh.available()) {
         while(bluetooh.available()){
-            if(recebeInformacaoBluetooth() == '1'){
+            descompactaJSON();
+            if(retornaBoolJSON("lampada") == true){
                 controlaDispositivo(LED);
             }
         }
     }
 }
 
-char* descompactaJSON() {
-    DeserializationError error = deserializeJson(JSON, recebeInformacaoBluetooth());
-    if(error == NULL) {
+void descompactaJSON() {
+    String request = recebeInformacaoBluetooth();
+    
+    DeserializationError error = deserializeJson(JSON, request);
+    if(error != DeserializationError::Ok) {
         enviaInformacaoBluetooth(error.c_str());
     }
-
-    return deserializeJson(JSON, "{}");
 } 
 
 String compactaJSON() {
     String resposta;
-    serializeJson(jsonDoc, resposta);
+    serializeJson(JSON, resposta);
 
     return resposta;
 }
@@ -81,4 +84,20 @@ void enviaInformacaoBluetooth(String informacao) {
 
 int retornaEstadoDispositivo(int porta) {
     return digitalRead(porta);
+}
+
+String retornaStringJSON(String atributo) {
+    return JSON[atributo].as<String>();
+}
+
+int retornaIntJSON(String atributo) {
+    return JSON[atributo].as<int>();
+}
+
+float retornaFloatJSON(String atributo) {
+    return JSON[atributo].as<float>();
+}
+
+bool retornaBoolJSON(String atributo) {
+    return JSON[atributo].as<bool>();
 }
