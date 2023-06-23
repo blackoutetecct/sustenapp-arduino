@@ -21,3 +21,12 @@
 	"porta": <inteiro>
 }
 ```
+- ATUALIZACAO DE CONSUMO
+```
+{
+	"comando": "consumo",
+	"tipo": <hidrico/eletrico>,
+	"renovavel": <bool>,
+	"consumo": <float>	
+}
+```
