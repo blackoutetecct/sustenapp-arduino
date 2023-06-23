@@ -1,10 +1,12 @@
 #include <SoftwareSerial.h>
 #include <ArduinoJson.h>
 
-const int LIMITE = 13, LED = 3, RX = 1, TX = 0;
-const int portasSaida[LIMITE] = {LED};
+const int TX = 0, RX = 1, HIDROMETRO = 2, SCT = 3;
+const int DISPOSTIVO_01 = 3, DISPOSTIVO_02 = 4, DISPOSTIVO_03 = 5;
+const int LIMITE = 13, CAPACITY = 96;
+
+const int portasSaida[LIMITE] = {DISPOSTIVO_01};
 const int portasEntrada[LIMITE] = {};
-const int CAPACITY = 96;
 
 SoftwareSerial bluetooh(RX, TX);
 StaticJsonDocument<CAPACITY> JSON;
