@@ -1,8 +1,8 @@
 #include <SoftwareSerial.h>
 #include <ArduinoJson.h>
 
-const int TX = 0, RX = 1, HIDROMETRO = 2, SCT = 3;
-const int DISPOSTIVO_01 = 3, DISPOSTIVO_02 = 4, DISPOSTIVO_03 = 5;
+const int TX = 0, RX = 1, HIDROMETRO = 2, SCT = 3; // 0 - 5 OCUPADAS/RESERVADAS
+const int DISPOSTIVO_01 = 6, DISPOSTIVO_02 = 7, DISPOSTIVO_03 = 8; 
 const int LIMITE = 13, CAPACITY = 96;
 
 const int portasSaida[LIMITE] = {DISPOSTIVO_01};
