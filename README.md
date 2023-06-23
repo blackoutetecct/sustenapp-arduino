@@ -12,8 +12,12 @@
 ![JSON](https://img.shields.io/badge/json-0D1117?style=for-the-badge&logo=json&logoColor=5E5C5C&labelColor=0D1117)&nbsp;
 
 #
-### DOCUMENTACAO DA API
+### DOCUMENTACAO DA APLICACAO
 
+- CONTROLAR DISPOSITIVO
 ```
-
+{
+	"comando": "controlador",
+	"porta": <inteiro>
+}
 ```
