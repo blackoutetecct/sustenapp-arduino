@@ -43,8 +43,11 @@ void leituraBluetooth() {
     if(bluetooh.available()) {
         while(bluetooh.available()){
             descompactaJSON();
-            if(retornaBoolJSON("lampada") == true){
-                controlaDispositivo(LED);
+
+            if(retornaStringJSON("comando") == "controlador") {
+                controlaDispositivo(retornaIntJSON("porta"));
+            } else {
+                bluetooh.println("travou");
             }
         }
     }
