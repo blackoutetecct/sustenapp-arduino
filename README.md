@@ -21,6 +21,17 @@
 	"porta": <int>
 }
 ```
+
+- DECLARAR COMPONENTE
+```
+{
+    	"comando": "declaracao",
+    	"tipo": <componente>,
+    	"lado_01": <float>,
+    	"lado_02": <float>
+}
+```
+
 - ATUALIZACAO DE CONSUMO
 ```
 {
