@@ -4,23 +4,27 @@
 
 const int TX = 0, RX = 1, HIDROMETRO = 3, SCT = 4, RESERVATORIO_ECHO = 5, RESERVATORIO_TRIGGER = 6; 
 const int DISPOSTIVO_01 = 10, DISPOSTIVO_02 = 11, DISPOSTIVO_03 = 12; 
-const int LIMITE = 13, CAPACITY = 96;
-float ALTURA_RESERVATORIO = 0;
+const int LIMITE = 13, CAPACITY = 96, TENSAO = 110;
+double ALTURA_RESERVATORIO = 0, KWH = 0;
 
 const int portasSaida[LIMITE] = {DISPOSTIVO_01};
 const int portasEntrada[LIMITE] = {};
 
 SoftwareSerial bluetooh(RX, TX);
 Ultrasonic ultrasonic(RESERVATORIO_TRIGGER, RESERVATORIO_ECHO);
+EnergyMonitor energia;
 StaticJsonDocument<CAPACITY> JSON;
 
 void setup() {
     bluetooh.begin(9600);
+    energia.current(SCT, 0.0607);
     declaraPortasDeSaida();
 }
 
 void loop() {
     leituraBluetooth();
+    leituraEnergia();
+    delay(1000);
 }
 
 void declaraPortasDeEntrada() {
@@ -44,7 +48,7 @@ void declaraPortasDeSaida() {
     }
 }
 
-// COMUNICACAO 
+// LEITURA CONTINUA 
 
 void leituraBluetooth() {
     if(bluetooh.available()) {
@@ -77,6 +81,18 @@ void leituraBluetooth() {
         }
     }
 }
+
+void leituraEnergia() {
+    double IRMS = energia.calcIrms(1480); // Calcula o valor da Corrente, usando 1480 amostras
+
+    if(IRMS < 0.02) {
+        return;
+    } 
+
+    KWH += (IRMS * TENSAO)/1000;
+}
+
+// COMUNICACAO
 
 String recebeInformacaoBluetooth() {
     return String(bluetooh.readString());
@@ -134,32 +150,33 @@ void controlaDispositivo(int porta) {
 
 // RENOVAVEL
 
-float retornaConsumoEletrico() {
+double retornaConsumoEletrico() {
+    double KWH_RETURN = KWH;
+    KWH = 0;
+    return KWH_RETURN;
+}
+
+double retornaConsumoHidrico() {
     return 0;
 }
 
-float retornaConsumoHidrico() {
+double retornaVolumePainelSolar() {
     return 0;
 }
 
-float retornaVolumePainelSolar() {
-    return 0;
-}
-
-float retornaVolumeReservatorio() {
+double retornaVolumeReservatorio() {
     return ALTURA_RESERVATORIO - ultrasonic.read() / 100;
 }
 
 // DECLARACAO
 
 void declaraAlturaReservatorio(float altura) {
-    // CM
-    ALTURA_RESERVATORIO = altura;
+    ALTURA_RESERVATORIO = altura; // CM
 }
 
 // RELATORIO
 
-void enviaRelatorio(float consumo) {
+void enviaRelatorio(double consumo) {
     JSON["consumo"] = consumo;
     enviaInformacaoBluetooth(compactaJSON());
 }
