@@ -14,7 +14,7 @@
 #
 ### DOCUMENTACAO DA APLICACAO
 
-- CONTROLAR DISPOSITIVO
+- CONTROLE DE DISPOSITIVO
 ```
 {
 	"comando": "controlador",
@@ -22,13 +22,12 @@
 }
 ```
 
-- DECLARAR COMPONENTE
+- DECLARACAO DE VARIAVEL DE RESERVATORIO
 ```
 {
     	"comando": "declaracao",
-    	"tipo": <componente>,
-    	"lado_01": <float>,
-    	"lado_02": <float>
+    	"tipo": "reservatorio",
+    	"altura": <float>,
 }
 ```
 
