@@ -1,14 +1,17 @@
 #include <SoftwareSerial.h>
 #include <ArduinoJson.h>
+#include <Ultrasonic.h>
 
-const int TX = 0, RX = 1, HIDROMETRO = 2, SCT = 3; // 0 - 5 OCUPADAS/RESERVADAS
-const int DISPOSTIVO_01 = 6, DISPOSTIVO_02 = 7, DISPOSTIVO_03 = 8; 
+const int TX = 0, RX = 1, HIDROMETRO = 3, SCT = 4, RESERVATORIO_ECHO = 5, RESERVATORIO_TRIGGER = 6; 
+const int DISPOSTIVO_01 = 10, DISPOSTIVO_02 = 11, DISPOSTIVO_03 = 12; 
 const int LIMITE = 13, CAPACITY = 96;
+float ALTURA_RESERVATORIO = 0;
 
 const int portasSaida[LIMITE] = {DISPOSTIVO_01};
 const int portasEntrada[LIMITE] = {};
 
 SoftwareSerial bluetooh(RX, TX);
+Ultrasonic ultrasonic(RESERVATORIO_TRIGGER, RESERVATORIO_ECHO);
 StaticJsonDocument<CAPACITY> JSON;
 
 void setup() {
@@ -22,7 +25,7 @@ void loop() {
 
 void declaraPortasDeEntrada() {
     for(int i = 0; i < LIMITE; i++) {
-        if(portasEntrada[i] == NULL) {
+        if(!portasEntrada[i]) {
             break;
         }
 
@@ -32,7 +35,7 @@ void declaraPortasDeEntrada() {
 
 void declaraPortasDeSaida() {
     for(int i = 0; i < LIMITE; i++) {
-        if(portasSaida[i] == NULL) {
+        if(!portasSaida[i]) {
             break;
         }
 
@@ -41,19 +44,49 @@ void declaraPortasDeSaida() {
     }
 }
 
+// COMUNICACAO 
+
 void leituraBluetooth() {
     if(bluetooh.available()) {
         while(bluetooh.available()){
             descompactaJSON();
 
-            if(retornaStringJSON("comando") == "controlador") {
+            if(retornaStringJSON("comando") == "consumo") {
+                if(retornaStringJSON("tipo") == "hidrico") {
+                    if(retornaBoolJSON("renovavel")) {
+                        enviaRelatorio(retornaVolumeReservatorio());
+                    } else{
+                        enviaRelatorio(retornaConsumoHidrico());
+                    }
+                } else if(retornaStringJSON("tipo") == "eletrico") {
+                    if(retornaBoolJSON("renovavel")) {
+                        enviaRelatorio(retornaVolumePainelSolar());
+                    } else{
+                        enviaRelatorio(retornaConsumoEletrico());
+                    }
+                }
+            } else if(retornaStringJSON("comando") == "controlador") {
                 controlaDispositivo(retornaIntJSON("porta"));
+            } else if(retornaStringJSON("comando") == "declaracao") {
+                if(retornaStringJSON("tipo") == "reservatorio") {
+                    declaraAlturaReservatorio(retornaFloatJSON("altura"));
+                }
             } else {
-                bluetooh.println("travou");
+                enviaInformacaoBluetooth("travou");
             }
         }
     }
 }
+
+String recebeInformacaoBluetooth() {
+    return String(bluetooh.readString());
+}
+
+void enviaInformacaoBluetooth(String informacao) {
+    bluetooh.println(informacao);
+}
+
+// -> CONVERSAO
 
 void descompactaJSON() {
     String request = recebeInformacaoBluetooth();
@@ -71,21 +104,7 @@ String compactaJSON() {
     return resposta;
 }
 
-void controlaDispositivo(int porta) {
-    if(retornaEstadoDispositivo(porta) == HIGH) {
-        digitalWrite(porta, LOW);
-    } else {
-        digitalWrite(porta, HIGH);
-    }
-}
-
-String recebeInformacaoBluetooth() {
-    return String(bluetooh.readString());
-}
-
-void enviaInformacaoBluetooth(String informacao) {
-    bluetooh.println(informacao);
-}
+// -> EXTRACAO DE INFORMACAO
 
 int retornaEstadoDispositivo(int porta) {
     return digitalRead(porta);
@@ -105,4 +124,42 @@ float retornaFloatJSON(String atributo) {
 
 bool retornaBoolJSON(String atributo) {
     return JSON[atributo].as<bool>();
+}
+
+// CONTROLADOR
+
+void controlaDispositivo(int porta) {
+    digitalWrite(porta, !retornaEstadoDispositivo(porta));
+}
+
+// RENOVAVEL
+
+float retornaConsumoEletrico() {
+    return 0;
+}
+
+float retornaConsumoHidrico() {
+    return 0;
+}
+
+float retornaVolumePainelSolar() {
+    return 0;
+}
+
+float retornaVolumeReservatorio() {
+    return ALTURA_RESERVATORIO - ultrasonic.read() / 100;
+}
+
+// DECLARACAO
+
+void declaraAlturaReservatorio(float altura) {
+    // CM
+    ALTURA_RESERVATORIO = altura;
+}
+
+// RELATORIO
+
+void enviaRelatorio(float consumo) {
+    JSON["consumo"] = consumo;
+    enviaInformacaoBluetooth(compactaJSON());
 }
