@@ -1,6 +1,7 @@
 #include <SoftwareSerial.h>
 #include <ArduinoJson.h>
 #include <Ultrasonic.h>
+#include <EmonLib.h>
 
 const int TX = 0, RX = 1, HIDROMETRO = 3, SCT = 4, RESERVATORIO_ECHO = 5, RESERVATORIO_TRIGGER = 6; 
 const int DISPOSTIVO_01 = 10, DISPOSTIVO_02 = 11, DISPOSTIVO_03 = 12; 
@@ -10,21 +11,22 @@ double ALTURA_RESERVATORIO = 0, KWH = 0;
 const int portasSaida[LIMITE] = {DISPOSTIVO_01};
 const int portasEntrada[LIMITE] = {};
 
-SoftwareSerial bluetooh(RX, TX);
+SoftwareSerial bluetooth(RX, TX);
 Ultrasonic ultrasonic(RESERVATORIO_TRIGGER, RESERVATORIO_ECHO);
 EnergyMonitor energia;
 StaticJsonDocument<CAPACITY> JSON;
 
 void setup() {
-    bluetooh.begin(9600);
-    energia.current(SCT, 0.0607);
     declaraPortasDeSaida();
+    declaraPortasDeEntrada();
+    bluetooth.begin(9600);
+    //energia.current(SCT, 0.0607); //EnergyMonitor SCT013
 }
 
 void loop() {
     leituraBluetooth();
-    leituraEnergia();
-    delay(1000);
+    //leituraEletrica();
+    //leituraHidrica();
 }
 
 void declaraPortasDeEntrada() {
@@ -51,8 +53,8 @@ void declaraPortasDeSaida() {
 // LEITURA CONTINUA 
 
 void leituraBluetooth() {
-    if(bluetooh.available()) {
-        while(bluetooh.available()){
+    if(bluetooth.available()) {
+        while(bluetooth.available()){
             descompactaJSON();
 
             if(retornaStringJSON("comando") == "consumo") {
@@ -73,7 +75,7 @@ void leituraBluetooth() {
                 controlaDispositivo(retornaIntJSON("porta"));
             } else if(retornaStringJSON("comando") == "declaracao") {
                 if(retornaStringJSON("tipo") == "reservatorio") {
-                    declaraAlturaReservatorio(retornaFloatJSON("altura"));
+                    declaraAlturaReservatorio();
                 }
             } else {
                 enviaInformacaoBluetooth("travou");
@@ -82,7 +84,7 @@ void leituraBluetooth() {
     }
 }
 
-void leituraEnergia() {
+void leituraEletrica() {
     double IRMS = energia.calcIrms(1480); // Calcula o valor da Corrente, usando 1480 amostras
 
     if(IRMS < 0.02) {
@@ -92,14 +94,18 @@ void leituraEnergia() {
     KWH += (IRMS * TENSAO)/1000;
 }
 
+void leituraHidrica() {
+
+}
+
 // COMUNICACAO
 
 String recebeInformacaoBluetooth() {
-    return String(bluetooh.readString());
+    return String(bluetooth.readString());
 }
 
 void enviaInformacaoBluetooth(String informacao) {
-    bluetooh.println(informacao);
+    bluetooth.println(informacao);
 }
 
 // -> CONVERSAO
@@ -134,8 +140,8 @@ int retornaIntJSON(String atributo) {
     return JSON[atributo].as<int>();
 }
 
-float retornaFloatJSON(String atributo) {
-    return JSON[atributo].as<float>();
+double retornaDoubleJSON(String atributo) {
+    return JSON[atributo].as<double>();
 }
 
 bool retornaBoolJSON(String atributo) {
@@ -165,13 +171,14 @@ double retornaVolumePainelSolar() {
 }
 
 double retornaVolumeReservatorio() {
-    return ALTURA_RESERVATORIO - ultrasonic.read() / 100;
+    return ((ALTURA_RESERVATORIO - ultrasonic.read()) / 100);
 }
 
 // DECLARACAO
 
-void declaraAlturaReservatorio(float altura) {
-    ALTURA_RESERVATORIO = altura; // CM
+void declaraAlturaReservatorio() {
+    ALTURA_RESERVATORIO = ultrasonic.read(); // CM
+    bluetooth.print(ALTURA_RESERVATORIO);
 }
 
 // RELATORIO
