@@ -45,6 +45,7 @@
 	"comando": "consumo",
 	"tipo": <hidrico/eletrico>,
 	"renovavel": <bool>,
-	"consumo": <float>	
+	"consumo": <float>,
+	"unidade": <str>
 }
 ```
