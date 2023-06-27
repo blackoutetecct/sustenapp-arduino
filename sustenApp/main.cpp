@@ -66,15 +66,15 @@ void leituraBluetooth() {
             if (retornaStringJSON("comando") == "consumo") {
                 if (retornaStringJSON("tipo") == "hidrico") {
                     if (retornaBoolJSON("renovavel")) {
-                        enviaRelatorio(retornaVolumeReservatorio());
+                        enviaRelatorio(retornaVolumeReservatorio(), "%");
                     } else {
-                        enviaRelatorio(retornaConsumoHidrico());
+                        enviaRelatorio(retornaConsumoHidrico(), "M3");
                     }
                 } else if (retornaStringJSON("tipo") == "eletrico") {
                     if (retornaBoolJSON("renovavel")) {
                         enviaRelatorio(retornaVolumePainelSolar());
                     } else {
-                        enviaRelatorio(retornaConsumoEletrico());
+                        enviaRelatorio(retornaConsumoEletrico(), "KW/H");
                     }
                 }
             } else if (retornaStringJSON("comando") == "controlador") {
@@ -109,7 +109,7 @@ void leituraHidrica() {
 
         fluxo = ((1000.0 / (millis() - ULTIMA_EXECUCAO)) * CONTADOR_AGUA) / FATOR_CALIBRACAO;
         VOLUME = FLUXO / 60;
-        VOLUME_TOTAL += VOLUME;
+        VOLUME_TOTAL += (VOLUME / 1000);
         CONTADOR_AGUA = 0;
         ULTIMA_EXECUCAO = millis();
 
@@ -152,7 +152,7 @@ int retornaEstadoDispositivo(int porta) {
 }
 
 String retornaStringJSON(String atributo) {
-    return JSON[atributo].as < String > ();
+    return JSON[atributo].as<String>();
 }
 
 int retornaIntJSON(String atributo) {
@@ -160,11 +160,11 @@ int retornaIntJSON(String atributo) {
 }
 
 double retornaDoubleJSON(String atributo) {
-    return JSON[atributo].as < double > ();
+    return JSON[atributo].as<double>();
 }
 
 bool retornaBoolJSON(String atributo) {
-    return JSON[atributo].as < bool > ();
+    return JSON[atributo].as<bool>();
 }
 
 // CONTROLADOR
@@ -186,7 +186,7 @@ double retornaConsumoEletrico() {
 }
 
 double retornaConsumoHidrico() {
-    return 0;
+    return VOLUME_TOTAL;
 }
 
 double retornaVolumePainelSolar() {
@@ -206,7 +206,8 @@ void declaraAlturaReservatorio() {
 
 // RELATORIO
 
-void enviaRelatorio(double consumo) {
+void enviaRelatorio(double consumo, String unidade) {
     JSON["consumo"] = consumo;
+    JSON["unidade"] = unidade;
     enviaInformacaoBluetooth(compactaJSON());
 }
