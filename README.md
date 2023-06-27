@@ -22,6 +22,15 @@
 }
 ```
 
+- ESTADO DE DISPOSITIVO
+```
+{
+	"comando": "dispositivo",
+	"porta": <int>,
+	"estado": <int>
+}
+```
+
 - DECLARACAO DE VARIAVEL DE RESERVATORIO
 ```
 {
