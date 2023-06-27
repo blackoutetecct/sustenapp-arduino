@@ -171,14 +171,13 @@ double retornaVolumePainelSolar() {
 }
 
 double retornaVolumeReservatorio() {
-    return ((ALTURA_RESERVATORIO - ultrasonic.read()) / 100);
+    return ((ultrasonic.read() * 100) / ALTURA_RESERVATORIO);
 }
 
 // DECLARACAO
 
 void declaraAlturaReservatorio() {
     ALTURA_RESERVATORIO = ultrasonic.read(); // CM
-    bluetooth.print(ALTURA_RESERVATORIO);
 }
 
 // RELATORIO
