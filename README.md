@@ -26,8 +26,7 @@
 ```
 {
     	"comando": "declaracao",
-    	"tipo": "reservatorio",
-    	"altura": <float>,
+    	"tipo": "reservatorio"
 }
 ```
 
