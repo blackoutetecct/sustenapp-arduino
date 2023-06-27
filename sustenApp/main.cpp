@@ -73,6 +73,9 @@ void leituraBluetooth() {
                 }
             } else if(retornaStringJSON("comando") == "controlador") {
                 controlaDispositivo(retornaIntJSON("porta"));
+            } else if(retornaStringJSON("comando") == "dispositivo") {
+                JSON["estado"] = retornaEstadoDispositivo(retornaIntJSON("porta"));
+                enviaInformacaoBluetooth(compactaJSON());
             } else if(retornaStringJSON("comando") == "declaracao") {
                 if(retornaStringJSON("tipo") == "reservatorio") {
                     declaraAlturaReservatorio();
@@ -178,6 +181,7 @@ double retornaVolumeReservatorio() {
 
 void declaraAlturaReservatorio() {
     ALTURA_RESERVATORIO = ultrasonic.read(); // CM
+    bluetooth.print(ALTURA_RESERVATORIO);
 }
 
 // RELATORIO
