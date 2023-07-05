@@ -12,9 +12,7 @@ const float FATOR_CALIBRACAO = 4.5;
 double ALTURA_RESERVATORIO = 0, CAPACIDADE_RESERVATORIO = 0, KWH = 0, CONTADOR_AGUA = 0, FLUXO = 0, VOLUME = 0, VOLUME_TOTAL = 0;
 int CONTADOR_AGUA = 0;
 unsigned long ULTIMA_EXECUCAO = 0;
-
-const int portasSaida[LIMITE] = {};
-const int portasEntrada[LIMITE] = {};
+int portasSaida[LIMITE], portasEntrada[LIMITE];
 
 SoftwareSerial bluetooth(RX, TX);
 Ultrasonic ultrasonic(RESERVATORIO_TRIGGER, RESERVATORIO_ECHO);
@@ -51,7 +49,7 @@ void leituraBluetooth() {
                     }
                 } else if (retornaStringJSON("tipo") == "eletrico") {
                     if (retornaBoolJSON("renovavel")) {
-                        enviaRelatorio(retornaVolumePainelSolar());
+                        enviaRelatorio(retornaVolumePainelSolar(), "#");
                     } else {
                         enviaRelatorio(retornaConsumoEletrico(), "KW/H");
                     }
