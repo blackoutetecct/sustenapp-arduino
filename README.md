@@ -35,7 +35,8 @@
 ```
 {
     	"comando": "declaracao",
-    	"tipo": "reservatorio"
+    	"tipo": "reservatorio",
+	"capacidade" : <double>
 }
 ```
 
