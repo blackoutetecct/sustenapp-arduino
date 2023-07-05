@@ -9,11 +9,11 @@ const int LIMITE = 13, CAPACITY = 96, TENSAO = 110;
 const int INTERRUPCAO_AGUA = 0;
 const float FATOR_CALIBRACAO = 4.5;
 
-double ALTURA_RESERVATORIO = 0, KWH = 0, CONTADOR_AGUA = 0, FLUXO = 0, VOLUME = 0, VOLUME_TOTAL = 0;
+double ALTURA_RESERVATORIO = 0, CAPACIDADE_RESERVATORIO = 0, KWH = 0, CONTADOR_AGUA = 0, FLUXO = 0, VOLUME = 0, VOLUME_TOTAL = 0;
 int CONTADOR_AGUA = 0;
 unsigned long ULTIMA_EXECUCAO = 0;
 
-const int portasSaida[LIMITE] = {DISPOSTIVO_01};
+const int portasSaida[LIMITE] = {};
 const int portasEntrada[LIMITE] = {};
 
 SoftwareSerial bluetooth(RX, TX);
@@ -35,27 +35,6 @@ void loop() {
     //leituraHidrica();
 }
 
-void declaraPortasDeEntrada() {
-    for (int i = 0; i < LIMITE; i++) {
-        if (!portasEntrada[i]) {
-            break;
-        }
-
-        pinMode(portasEntrada[i], INPUT);
-    }
-}
-
-void declaraPortasDeSaida() {
-    for (int i = 0; i < LIMITE; i++) {
-        if (!portasSaida[i]) {
-            break;
-        }
-
-        pinMode(portasSaida[i], OUTPUT);
-        digitalWrite(portasSaida[i], LOW);
-    }
-}
-
 // LEITURA CONTINUA 
 
 void leituraBluetooth() {
@@ -66,7 +45,7 @@ void leituraBluetooth() {
             if (retornaStringJSON("comando") == "consumo") {
                 if (retornaStringJSON("tipo") == "hidrico") {
                     if (retornaBoolJSON("renovavel")) {
-                        enviaRelatorio(retornaVolumeReservatorio(), "%");
+                        enviaRelatorio(retornaVolumeReservatorio(), "L");
                     } else {
                         enviaRelatorio(retornaConsumoHidrico(), "M3");
                     }
@@ -84,7 +63,9 @@ void leituraBluetooth() {
                 enviaInformacaoBluetooth(compactaJSON());
             } else if (retornaStringJSON("comando") == "declaracao") {
                 if (retornaStringJSON("tipo") == "reservatorio") {
-                    declaraAlturaReservatorio();
+                    declaraReservatorio(retornaDoubleJSON("capacidade"));
+                } else if (retornaStringJSON("tipo") == "dispositivo") {
+                    declaracaoDispositivo(retornaIntJSON("porta"));
                 }
             } else {
                 enviaInformacaoBluetooth("travou");
@@ -194,14 +175,46 @@ double retornaVolumePainelSolar() {
 }
 
 double retornaVolumeReservatorio() {
-    return ((ultrasonic.read() * 100) / ALTURA_RESERVATORIO);
+    return ((CAPACIDADE_RESERVATORIO / ALTURA_RESERVATORIO) * (ultrasonic.read() * 100) / ALTURA_RESERVATORIO);
 }
 
 // DECLARACAO
 
-void declaraAlturaReservatorio() {
+void declaraPortasDeEntrada() {
+    for (int i = 0; i < LIMITE; i++) {
+        if (!portasEntrada[i]) {
+            break;
+        }
+
+        pinMode(portasEntrada[i], INPUT);
+    }
+}
+
+void declaraPortasDeSaida() {
+    for (int i = 0; i < LIMITE; i++) {
+        if (!portasSaida[i]) {
+            break;
+        }
+
+        pinMode(portasSaida[i], OUTPUT);
+        digitalWrite(portasSaida[i], LOW);
+    }
+}
+
+void declaraReservatorio(double capacidade) {
+    CAPACIDADE_RESERVATORIO = capacidade; // L
     ALTURA_RESERVATORIO = ultrasonic.read(); // CM
-    bluetooth.print(ALTURA_RESERVATORIO);
+}
+
+void declaracaoDispositivo(int porta) {
+    for (int i = 0; i < LIMITE; i++) {
+        if (!portasSaida[i] && (porta == DISPOSTIVO_01 || porta || DISPOSTIVO_02 || porta == DISPOSTIVO_03)) {
+            portasSaida[i] = porta;
+            break;
+        }
+    }
+
+    declaraPortasDeSaida();
 }
 
 // RELATORIO
