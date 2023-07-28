@@ -52,9 +52,9 @@
 ```
 {
 	"comando": "consumo",
-	"tipo": <hidrico/eletrico>,
+	"tipo": "<hidrico/eletrico>",
 	"renovavel": <bool>,
 	"consumo": <float>,
-	"unidade": <str>
+	"unidade": "<str>"
 }
 ```
