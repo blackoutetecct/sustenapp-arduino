@@ -18,7 +18,6 @@
 - https://github.com/MatheusAlvesA/ArduinoAsync
 - https://www.arduino.cc/reference/en/libraries/ultrasonic/
 - https://www.arduino.cc/reference/en/libraries/arduinojson/
-- https://docs.arduino.cc/learn/built-in-libraries/software-serial?queryID=40e14f5179b2336a82cad74601915c54
 
 #
 ### DOCUMENTACAO DA APLICACAO
