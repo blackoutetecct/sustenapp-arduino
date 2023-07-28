@@ -2,22 +2,32 @@
 #include <ArduinoJson.h>
 #include <Ultrasonic.h>
 #include <EmonLib.h>
+#include <async.h>
 
 const int TX = 0, RX = 1, HIDROMETRO = 3, SCT = 4, RESERVATORIO_ECHO = 5, RESERVATORIO_TRIGGER = 6;
-const int DISPOSTIVO_01 = 10, DISPOSTIVO_02 = 11, DISPOSTIVO_03 = 12;
 const int LIMITE = 13, CAPACITY = 96, TENSAO = 110;
-const int INTERRUPCAO_AGUA = 0;
-const float FATOR_CALIBRACAO = 4.5;
 
-double ALTURA_RESERVATORIO = 0, CAPACIDADE_RESERVATORIO = 0, KWH = 0, CONTADOR_AGUA = 0, FLUXO = 0, VOLUME = 0, VOLUME_TOTAL = 0;
-int CONTADOR_AGUA = 0;
+double ALTURA_RESERVATORIO = 0, CAPACIDADE_RESERVATORIO = 0, KWH = 0;
+
+// AGUA
+
+const float FATOR_CALIBRACAO = 7.5;
+const int INTERRUPCAO_SENSOR = 0;
+
+double CONTADOR_AGUA = 0, VOLUME_TOTAL = 0;
 unsigned long ULTIMA_EXECUCAO = 0;
-int portasSaida[LIMITE], portasEntrada[LIMITE];
+
+// -----
+
+int portasSaida[LIMITE] = {};
+int portasEntrada[LIMITE] = {};
+int portasDispositivo[4] = {10, 11, 12, 13};
 
 SoftwareSerial bluetooth(RX, TX);
 Ultrasonic ultrasonic(RESERVATORIO_TRIGGER, RESERVATORIO_ECHO);
 EnergyMonitor energia;
 StaticJsonDocument <CAPACITY> JSON;
+Async assincrono = Async();
 
 void setup() {
     declaraPortasDeSaida();
@@ -28,7 +38,11 @@ void setup() {
 }
 
 void loop() {
+    assincrono.run();
     leituraBluetooth();
+    assincrono.setInterval(leituraHidrica, 10);
+    
+    //leituraBluetooth();
     //leituraEletrica();
     //leituraHidrica();
 }
@@ -49,7 +63,7 @@ void leituraBluetooth() {
                     }
                 } else if (retornaStringJSON("tipo") == "eletrico") {
                     if (retornaBoolJSON("renovavel")) {
-                        enviaRelatorio(retornaVolumePainelSolar(), "#");
+                        enviaRelatorio(retornaVolumePainelSolar(), "NA");
                     } else {
                         enviaRelatorio(retornaConsumoEletrico(), "KW/H");
                     }
@@ -86,9 +100,10 @@ void leituraHidrica() {
     if ((millis() - ULTIMA_EXECUCAO) > 1000) {
         detachInterrupt(INTERRUPCAO_SENSOR);
 
-        fluxo = ((1000.0 / (millis() - ULTIMA_EXECUCAO)) * CONTADOR_AGUA) / FATOR_CALIBRACAO;
-        VOLUME = FLUXO / 60;
-        VOLUME_TOTAL += (VOLUME / 1000);
+        double FLUXO = ((1000.0 / (millis() - ULTIMA_EXECUCAO)) * CONTADOR_AGUA) / FATOR_CALIBRACAO;
+        double VOLUME = FLUXO / 60;
+
+        VOLUME_TOTAL += VOLUME / 100; //(VOLUME / 1000);
         CONTADOR_AGUA = 0;
         ULTIMA_EXECUCAO = millis();
 
@@ -204,11 +219,27 @@ void declaraReservatorio(double capacidade) {
     ALTURA_RESERVATORIO = ultrasonic.read(); // CM
 }
 
+/*
+
+void declaracaoDispositivo() {
+    for (int dispositivo = 0; dispositivo < 4; dispositivo++) {
+        for (int saida = 0; saida < LIMITE; saida++) {
+            if(portasDispositivos[dispositivo] == portasSaida[saida]) {
+                portasSaida[i] = portasDispositivo[dispositivo];
+                break;
+            }
+        }
+    }
+
+    declaraPortasDeSaida();
+}
+
+*/
+
 void declaracaoDispositivo(int porta) {
     for (int i = 0; i < LIMITE; i++) {
-        if (!portasSaida[i] && (porta == DISPOSTIVO_01 || porta || DISPOSTIVO_02 || porta == DISPOSTIVO_03)) {
+        if(!portasSaida[i]) {
             portasSaida[i] = porta;
-            break;
         }
     }
 
@@ -221,4 +252,4 @@ void enviaRelatorio(double consumo, String unidade) {
     JSON["consumo"] = consumo;
     JSON["unidade"] = unidade;
     enviaInformacaoBluetooth(compactaJSON());
-}
+} 
