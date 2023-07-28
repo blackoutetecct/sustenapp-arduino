@@ -2,9 +2,8 @@
 #include <ArduinoJson.h>
 #include <Ultrasonic.h>
 #include <EmonLib.h>
-#include <async.h>
 
-const int TX = 0, RX = 1, HIDROMETRO = 3, SCT = 4, RESERVATORIO_ECHO = 5, RESERVATORIO_TRIGGER = 6;
+const int TX = 0, RX = 1, HIDROMETRO = 3, SCT = A0, RESERVATORIO_ECHO = 5, RESERVATORIO_TRIGGER = 6;
 const int LIMITE = 13, CAPACITY = 96, TENSAO = 110;
 
 double ALTURA_RESERVATORIO = 0, CAPACIDADE_RESERVATORIO = 0, KWH = 0;
@@ -27,24 +26,19 @@ SoftwareSerial bluetooth(RX, TX);
 Ultrasonic ultrasonic(RESERVATORIO_TRIGGER, RESERVATORIO_ECHO);
 EnergyMonitor energia;
 StaticJsonDocument <CAPACITY> JSON;
-Async assincrono = Async();
 
 void setup() {
     declaraPortasDeSaida();
     declaraPortasDeEntrada();
     pinMode(HIDROMETRO, INPUT_PULLUP);
     bluetooth.begin(9600);
-    //energia.current(SCT, 0.0607); //EnergyMonitor SCT013
+    energia.current(SCT, 60); 
 }
 
 void loop() {
-    assincrono.run();
     leituraBluetooth();
-    assincrono.setInterval(leituraHidrica, 10);
-    
-    //leituraBluetooth();
-    //leituraEletrica();
-    //leituraHidrica();
+    leituraEletrica();
+    leituraHidrica();
 }
 
 // LEITURA CONTINUA 
@@ -97,10 +91,12 @@ void leituraEletrica() {
 }
 
 void leituraHidrica() {
-    if ((millis() - ULTIMA_EXECUCAO) > 1000) {
+    unsigned long INTERVALO = millis() - ULTIMA_EXECUCAO;
+
+    if (INTERVALO > 1000) {
         detachInterrupt(INTERRUPCAO_SENSOR);
 
-        double FLUXO = ((1000.0 / (millis() - ULTIMA_EXECUCAO)) * CONTADOR_AGUA) / FATOR_CALIBRACAO;
+        double FLUXO = ((1000.0 / INTERVALO) * CONTADOR_AGUA) / FATOR_CALIBRACAO;
         double VOLUME = FLUXO / 60;
 
         VOLUME_TOTAL += VOLUME / 100; //(VOLUME / 1000);
@@ -167,6 +163,8 @@ void controlaDispositivo(int porta) {
     digitalWrite(porta, !retornaEstadoDispositivo(porta));
 }
 
+// INCREMENTADOR
+
 void incrementaContador() {
     CONTADOR_AGUA++;
 }
@@ -180,7 +178,9 @@ double retornaConsumoEletrico() {
 }
 
 double retornaConsumoHidrico() {
-    return VOLUME_TOTAL;
+    double VOLUME_TOTAL_RETURN = VOLUME_TOTAL;
+    VOLUME_TOTAL = 0;
+    return VOLUME_TOTAL_RETURN;
 }
 
 double retornaVolumePainelSolar() {
@@ -199,7 +199,7 @@ void declaraPortasDeEntrada() {
             break;
         }
 
-        pinMode(portasEntrada[i], INPUT);
+        declaraPorta(portasEntrada[i], INPUT);
     }
 }
 
@@ -209,8 +209,7 @@ void declaraPortasDeSaida() {
             break;
         }
 
-        pinMode(portasSaida[i], OUTPUT);
-        digitalWrite(portasSaida[i], LOW);
+        declaraPorta(portasSaida[i], OUTPUT);
     }
 }
 
@@ -219,31 +218,21 @@ void declaraReservatorio(double capacidade) {
     ALTURA_RESERVATORIO = ultrasonic.read(); // CM
 }
 
-/*
-
-void declaracaoDispositivo() {
-    for (int dispositivo = 0; dispositivo < 4; dispositivo++) {
-        for (int saida = 0; saida < LIMITE; saida++) {
-            if(portasDispositivos[dispositivo] == portasSaida[saida]) {
-                portasSaida[i] = portasDispositivo[dispositivo];
-                break;
-            }
-        }
-    }
-
-    declaraPortasDeSaida();
-}
-
-*/
-
 void declaracaoDispositivo(int porta) {
     for (int i = 0; i < LIMITE; i++) {
-        if(!portasSaida[i]) {
+        if (!portasSaida[i]) {
             portasSaida[i] = porta;
+            declaraPorta(porta, OUTPUT);
         }
     }
+}
 
-    declaraPortasDeSaida();
+void declaraPorta(int porta, int fluxo) {
+    pinMode(porta, fluxo);
+
+    if (fluxo == OUTPUT) {
+        digitalWrite(porta, LOW);
+    }
 }
 
 // RELATORIO
