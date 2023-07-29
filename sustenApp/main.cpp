@@ -30,15 +30,15 @@ StaticJsonDocument <CAPACITY> JSON;
 void setup() {
     declaraPortasDeSaida();
     declaraPortasDeEntrada();
-    pinMode(HIDROMETRO, INPUT_PULLUP);
+    //pinMode(HIDROMETRO, INPUT_PULLUP);
     bluetooth.begin(9600);
-    energia.current(SCT, 60); 
+    //energia.current(SCT, 60); 
 }
 
 void loop() {
     leituraBluetooth();
-    leituraEletrica();
-    leituraHidrica();
+    //leituraEletrica();
+    //leituraHidrica();
 }
 
 // LEITURA CONTINUA 
@@ -56,17 +56,12 @@ void leituraBluetooth() {
                         enviaRelatorio(retornaConsumoHidrico(), "M3");
                     }
                 } else if (retornaStringJSON("tipo") == "eletrico") {
-                    if (retornaBoolJSON("renovavel")) {
-                        enviaRelatorio(retornaVolumePainelSolar(), "NA");
-                    } else {
-                        enviaRelatorio(retornaConsumoEletrico(), "KW/H");
-                    }
+                    enviaRelatorio(retornaConsumoEletrico(), "KW/H");
                 }
             } else if (retornaStringJSON("comando") == "controlador") {
                 controlaDispositivo(retornaIntJSON("porta"));
             } else if (retornaStringJSON("comando") == "dispositivo") {
-                JSON["estado"] = retornaEstadoDispositivo(retornaIntJSON("porta"));
-                enviaInformacaoBluetooth(compactaJSON());
+                enviaEstadoDispositivo(200, retornaEstadoDispositivo(retornaIntJSON("porta")));
             } else if (retornaStringJSON("comando") == "declaracao") {
                 if (retornaStringJSON("tipo") == "reservatorio") {
                     declaraReservatorio(retornaDoubleJSON("capacidade"));
@@ -74,7 +69,7 @@ void leituraBluetooth() {
                     declaracaoDispositivo(retornaIntJSON("porta"));
                 }
             } else {
-                enviaInformacaoBluetooth("travou");
+                enviaStatus(500, "FALHA NA COMUNICACAO");
             }
         }
     }
@@ -114,7 +109,7 @@ String recebeInformacaoBluetooth() {
 }
 
 void enviaInformacaoBluetooth(String informacao) {
-    bluetooth.println(informacao);
+    bluetooth.println(adicionaChaves(informacao));
 }
 
 // -> CONVERSAO
@@ -124,7 +119,7 @@ void descompactaJSON() {
 
     DeserializationError error = deserializeJson(JSON, request);
     if (error != DeserializationError::Ok) {
-        enviaInformacaoBluetooth(error.c_str());
+        // enviaInformacaoBluetooth(error.c_str());
     }
 }
 
@@ -137,16 +132,12 @@ String compactaJSON() {
 
 // -> EXTRACAO DE INFORMACAO
 
-int retornaEstadoDispositivo(int porta) {
-    return digitalRead(porta);
-}
-
 String retornaStringJSON(String atributo) {
     return JSON[atributo].as<String>();
 }
 
 int retornaIntJSON(String atributo) {
-    return JSON[atributo].as < int > ();
+    return JSON[atributo].as <int> ();
 }
 
 double retornaDoubleJSON(String atributo) {
@@ -160,7 +151,9 @@ bool retornaBoolJSON(String atributo) {
 // CONTROLADOR
 
 void controlaDispositivo(int porta) {
-    digitalWrite(porta, !retornaEstadoDispositivo(porta));
+    int estado = !retornaEstadoDispositivo(porta);
+    digitalWrite(porta, estado);
+    enviaEstadoDispositivo(200, estado);
 }
 
 // INCREMENTADOR
@@ -169,7 +162,7 @@ void incrementaContador() {
     CONTADOR_AGUA++;
 }
 
-// RENOVAVEL
+// STATUS
 
 double retornaConsumoEletrico() {
     double KWH_RETURN = KWH;
@@ -183,12 +176,12 @@ double retornaConsumoHidrico() {
     return VOLUME_TOTAL_RETURN;
 }
 
-double retornaVolumePainelSolar() {
-    return 0;
-}
-
 double retornaVolumeReservatorio() {
     return ((CAPACIDADE_RESERVATORIO / ALTURA_RESERVATORIO) * (ultrasonic.read() * 100) / ALTURA_RESERVATORIO);
+}
+
+int retornaEstadoDispositivo(int porta) {
+    return digitalRead(porta);
 }
 
 // DECLARACAO
@@ -216,6 +209,8 @@ void declaraPortasDeSaida() {
 void declaraReservatorio(double capacidade) {
     CAPACIDADE_RESERVATORIO = capacidade; // L
     ALTURA_RESERVATORIO = ultrasonic.read(); // CM
+
+    enviaStatus(200, "RESERVATORIO CONFIGURADO");
 }
 
 void declaracaoDispositivo(int porta) {
@@ -223,8 +218,12 @@ void declaracaoDispositivo(int porta) {
         if (!portasSaida[i]) {
             portasSaida[i] = porta;
             declaraPorta(porta, OUTPUT);
+            enviaStatus(200, "DISPOSITIVO ADICIONADO");
+            return;
         }
     }
+
+    enviaStatus(500, "FALHA NA ADICAO DO DISPOSITIVO");
 }
 
 void declaraPorta(int porta, int fluxo) {
@@ -238,7 +237,23 @@ void declaraPorta(int porta, int fluxo) {
 // RELATORIO
 
 void enviaRelatorio(double consumo, String unidade) {
-    JSON["consumo"] = consumo;
-    JSON["unidade"] = unidade;
-    enviaInformacaoBluetooth(compactaJSON());
+    enviaInformacaoBluetooth(
+        "'consumo':" + String(consumo) + ",'unidade':'" + unidade + "'"
+    );
 } 
+
+void enviaStatus(int status, String mensagem) {
+    enviaInformacaoBluetooth(
+        "'status':" + String(status) + ",'mensagem':'" + mensagem + "'"
+    );
+}
+
+void enviaEstadoDispositivo(int status, int estado) {
+    enviaInformacaoBluetooth(
+        "'status':" + String(status) + ",'estado':" + String(estado)
+    );
+}
+
+String adicionaChaves(String JSON) {
+    return "{" + JSON + "}";
+}
