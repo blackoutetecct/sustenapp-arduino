@@ -30,15 +30,15 @@ StaticJsonDocument <CAPACITY> JSON;
 void setup() {
     declaraPortasDeSaida();
     declaraPortasDeEntrada();
-    //pinMode(HIDROMETRO, INPUT_PULLUP);
+    pinMode(HIDROMETRO, INPUT_PULLUP);
     bluetooth.begin(9600);
-    //energia.current(SCT, 60); 
+    energia.current(SCT, 60); 
 }
 
 void loop() {
     leituraBluetooth();
-    //leituraEletrica();
-    //leituraHidrica();
+    leituraEletrica();
+    leituraHidrica();
 }
 
 // LEITURA CONTINUA 
