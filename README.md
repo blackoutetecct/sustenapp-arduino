@@ -18,8 +18,8 @@
 
 ```json
 {
-	"comando": "controlador",
-	"porta": <int>
+    "comando": "controlador",
+    "porta": <int>
 }
 ```
 
@@ -34,8 +34,8 @@
 
 ```json
 {
-	"comando": "dispositivo",
-	"porta": <int>,
+    "comando": "dispositivo",
+    "porta": <int>
 }
 ```
 
@@ -52,7 +52,7 @@
 {
     "comando": "declaracao",
     "tipo": "dispositivo",
-	"porta" : int
+    "porta" : int
 }
 ```
 
@@ -69,7 +69,7 @@
 {
     "comando": "declaracao",
     "tipo": "reservatorio",
-	"capacidade" : <double>
+    "capacidade" : <double>
 }
 ```
 
@@ -86,16 +86,16 @@
 
 ```json
 {
-	"comando": "consumo",
-	"tipo": "<hidrico/eletrico>",
-	"renovavel": <bool>
+    "comando": "consumo",
+    "tipo": "<hidrico/eletrico>",
+    "renovavel": <bool>
 }
 ```
 
 ```json
 {
-	"consumo": <float>,
-	"unidade": <string>
+    "consumo": <float>,
+    "unidade": <string>
 }
 ```
 
