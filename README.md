@@ -106,5 +106,6 @@
 - https://www.arduino.cc/reference/en/libraries/emonlib/
 - https://www.arduino.cc/reference/en/libraries/ultrasonic/
 - https://www.arduino.cc/reference/en/libraries/arduinojson/
+- https://github.com/espressif/arduino-esp32/tree/master
 
 #
