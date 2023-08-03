@@ -79,7 +79,7 @@
 }
 ```
 
-- *DECLARACAO DE CAPACIDADE DE RESERVATORIO*
+- *DECLARACAO DE RESERVATORIO*
 
 ```json
 {
@@ -96,6 +96,21 @@
 }
 ```
 
+- *DECLARACAO DE MONITOR DE ELETRICIDADE*
+
+```json
+{
+    "comando": "declaracao",
+    "tipo": "eletricidade"
+}
+```
+
+```json
+{
+    "status" : <int>,
+    "mensagem" : <string>
+}
+```
 
 - *CONSUMO*
 
