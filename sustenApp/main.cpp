@@ -11,7 +11,8 @@
 
 /* PORTAS */
 
-const int SCT = 21, RESERVATORIO_ECHO = 22, RESERVATORIO_TRIGGER = 23;
+const int RESERVATORIO_ECHO = 22, RESERVATORIO_TRIGGER = 23;
+int SCT;
 int portasDisponiveis[18] = {2,4,5,12,13,14,15,25,26,27,32,33,34,35,36,39,18,19};
 
 /* VARIAVEIS */ 
@@ -32,10 +33,8 @@ TaskHandle_t TaskEletrica;
 void setup() {
     Serial.begin(9600);
     bluetooth.begin("SUSTENAPP - CENTRAL");
-    energia.current(SCT, CALIBRACAO);
     
     xTaskCreatePinnedToCore(taskBluetooth, "TaskBluetooth", 10000, NULL, 1, &TaskBluetooth, 0);
-    xTaskCreatePinnedToCore(taskEletrica, "TaskEletrica", 10000, NULL, 1, &TaskEletrica, 1);
 }
 
 void loop() {
@@ -82,7 +81,11 @@ void leituraBluetooth() {
                     declaraReservatorio(retornaDoubleJSON("capacidade"));
                 } else if (retornaStringJSON("tipo") == "dispositivo") {
                     declaracaoDispositivo(retornaIntJSON("porta"));
+                } else if (retornaStringJSON("tipo") == "eletricidade") {
+                    declaraEletricidade();
                 }
+            } else if (retornaStringJSON("comando") == "disponibilidade") {
+                informaPortaDisponivel();
             } else {
                 enviaStatus(500, "FALHA NA COMUNICACAO");
             }
@@ -182,7 +185,30 @@ void declaraReservatorio(double capacidade) {
     enviaStatus(200, "RESERVATORIO CONFIGURADO");
 }
 
+void declaraEletricidade() {
+    if(!SCT) {
+        SCT = 21;
+        energia.current(SCT, CALIBRACAO);
+        xTaskCreatePinnedToCore(taskEletrica, "TaskEletrica", 10000, NULL, 1, &TaskEletrica, 1);
+
+        enviaStatus(200, "ELETRICIDADE MONITORAVEL");
+    }
+
+    enviaStatus(500, "ELETRICIDADE JA ESTA SENDO MONITORADA");
+}
+
 /* GERENCIAMENTO DE PORTAS */
+
+void informaPortaDisponivel() {
+    for (int i = 0; i < 18; i++) {
+        if (!portasDisponiveis[i]) {
+            enviaPortaDisponivel(200, portasDisponiveis[i]);
+            return;
+        }
+    }
+
+    enviaStatus(200, "ALCANCE DE LIMITE DE PORTAS UTILIZAVEIS");
+}
 
 void declaracaoDispositivo(int porta) {
     for (int i = 0; i < 18; i++) {
@@ -194,7 +220,7 @@ void declaracaoDispositivo(int porta) {
         }
     }
 
-    enviaStatus(500, "FALHA NA ADICAO DO DISPOSITIVO");
+    enviaStatus(402, "FALHA NA ADICAO DO DISPOSITIVO");
 }
 
 void declaraPorta(int porta, int fluxo) {
@@ -222,5 +248,11 @@ void enviaStatus(int status, String mensagem) {
 void enviaEstadoDispositivo(int status, int estado) {
     enviaInformacaoBluetooth(
         "'status':" + String(status) + ",'estado':" + String(estado)
+    );
+}
+
+void enviaPortaDisponivel(int status, int porta) {
+    enviaInformacaoBluetooth(
+        "'status':" + String(status) + ",'porta':" + String(porta)
     );
 }
