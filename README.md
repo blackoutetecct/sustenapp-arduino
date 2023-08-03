@@ -64,6 +64,21 @@
 }
 ```
 
+- *DISTRIBUICAO DE PORTA PARA DISPOSITIVO*
+
+```json
+{
+    "comando": "disponibilidade"
+}
+```
+
+```json
+{
+    "status" : <int>,
+    "porta" : <int>
+}
+```
+
 - *DECLARACAO DE CAPACIDADE DE RESERVATORIO*
 
 ```json
