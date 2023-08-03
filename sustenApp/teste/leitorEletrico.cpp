@@ -7,7 +7,7 @@ EnergyMonitor energia;
 
 void setup() {
     Serial.begin(9600);
-    energia.current(SCT, 60);
+    energia.current(SCT, 0.9);
 }
 
 void loop() {
@@ -22,5 +22,5 @@ void leituraEletrica() {
         return;
     }
 
-    KWH += (IRMS * TENSAO) / 1000;
+    KWH = (IRMS * TENSAO) / 1000;
 }
