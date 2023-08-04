@@ -7,7 +7,7 @@ EnergyMonitor energia;
 
 void setup() {
     Serial.begin(9600);
-    energia.current(SCT, 0.9);
+    energia.current(SCT, 0.15);
 }
 
 void loop() {
@@ -16,7 +16,7 @@ void loop() {
 }
 
 void leituraEletrica() {
-    double IRMS = energia.calcIrms(1480); 
+    double IRMS = energia.calcIrms(4096); 
 
     if (IRMS < 0.02) {
         return;
