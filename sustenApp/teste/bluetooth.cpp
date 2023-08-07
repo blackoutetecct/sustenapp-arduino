@@ -1,20 +1,20 @@
-#include <SoftwareSerial.h>
+#include "BluetoothSerial.h"
 
-int LED = 3, TX = 0, RX = 1;
+#if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
+# error Bluetooth is not enabled!Please run `make menuconfig`to and enable it
+#endif
 
-SoftwareSerial bluetooth(RX, TX); // RX(Modulo) -> TX(Placa), TX(Modulo) -> RX(Placa)
+BluetoothSerial bluetooth;
 
 void setup() {
-    bluetooth.begin(9600);
-    pinMode(LED, OUTPUT);
+    bluetooth.begin("ESP32"); //Bluetooth device name
 }
 
 void loop() {
-    if(bluetooth.available()) {
-        if(bluetooth.read() == '3'){
-            digitalWrite(LED, HIGH);
-            delay(1000);
-            digitalWrite(LED, LOW);
-        }
+    char leitura;
+
+    if (bluetooth.available()) {
+        leitura = bluetooth.read();
+        bluetooth.write(leitura);
     }
 }

@@ -1,20 +1,19 @@
+// -- AGUA
 const float FATOR_CALIBRACAO = 7.5;
 
 double VOLUME_TOTAL = 0;
-int CONTADOR_AGUA = 0, HIDROMETRO = 3, INTERRUPCAO_SENSOR = 0;
+int CONTADOR_AGUA = 0, HIDROMETRO = 15, INTERRUPCAO_SENSOR = 0;
 unsigned long ULTIMA_EXECUCAO = 0;
 
 void setup() {
+    Serial.begin(115200);
     pinMode(HIDROMETRO, INPUT_PULLUP);
-    Serial.begin(9600);
 }
 
 void loop() {
     leituraHidrica();
     Serial.println(VOLUME_TOTAL);
 }
-
-// LEITURA CONTINUA 
 
 void leituraHidrica() {
     unsigned long INTERVALO = millis() - ULTIMA_EXECUCAO;
