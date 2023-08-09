@@ -12,8 +12,8 @@
 /* PORTAS */
 
 const int RESERVATORIO_ECHO = 22, RESERVATORIO_TRIGGER = 23;
-int SCT;
 int portasDisponiveis[18] = {2,4,5,12,13,14,15,25,26,27,32,33,34,35,36,39,18,19};
+int SCT;
 
 /* VARIAVEIS */ 
 
@@ -31,10 +31,10 @@ TaskHandle_t TaskBluetooth;
 TaskHandle_t TaskEletrica;
 
 void setup() {
-    Serial.begin(9600);
-    bluetooth.begin("SUSTENAPP - CENTRAL");
-    
-    xTaskCreatePinnedToCore(taskBluetooth, "TaskBluetooth", 10000, NULL, 1, &TaskBluetooth, 0);
+    Serial.begin(115200);
+    bluetooth.begin("SUSTENAPP - CONTROL");
+
+    xTaskCreatePinnedToCore(taskBluetooth, "TaskBluetooth", 1024, NULL, 2, &TaskBluetooth, 0);
 }
 
 void loop() {
@@ -82,7 +82,7 @@ void leituraBluetooth() {
                 } else if (retornaStringJSON("tipo") == "dispositivo") {
                     declaracaoDispositivo(retornaIntJSON("porta"));
                 } else if (retornaStringJSON("tipo") == "eletricidade") {
-                    declaraEletricidade();
+                    //declaraEletricidade();
                 }
             } else if (retornaStringJSON("comando") == "disponibilidade") {
                 informaPortaDisponivel();
@@ -124,6 +124,7 @@ void descompactaJSON() {
     DeserializationError error = deserializeJson(JSON, request);
     if (error != DeserializationError::Ok) {
         // enviaInformacaoBluetooth(error.c_str());
+        return;
     }
 }
 
@@ -163,7 +164,7 @@ void controlaDispositivo(int porta) {
 /* STATUS */
 
 double retornaConsumoEletrico() {
-    double KWH_RETURN = KWH;
+    double KWH_RETURN = KWH;  
     KWH = 0;
     return KWH_RETURN;
 }
@@ -185,11 +186,12 @@ void declaraReservatorio(double capacidade) {
     enviaStatus(200, "RESERVATORIO CONFIGURADO");
 }
 
+
 void declaraEletricidade() {
     if(!SCT) {
         SCT = 21;
         energia.current(SCT, CALIBRACAO);
-        xTaskCreatePinnedToCore(taskEletrica, "TaskEletrica", 10000, NULL, 1, &TaskEletrica, 1);
+        xTaskCreatePinnedToCore(taskEletrica, "TaskEletrica", 1024, NULL, 1, &TaskEletrica, 1);
 
         enviaStatus(200, "ELETRICIDADE MONITORAVEL");
     }
@@ -197,11 +199,12 @@ void declaraEletricidade() {
     enviaStatus(500, "ELETRICIDADE JA ESTA SENDO MONITORADA");
 }
 
+
 /* GERENCIAMENTO DE PORTAS */
 
 void informaPortaDisponivel() {
     for (int i = 0; i < 18; i++) {
-        if (!portasDisponiveis[i]) {
+        if (portasDisponiveis[i]) {
             enviaPortaDisponivel(200, portasDisponiveis[i]);
             return;
         }
