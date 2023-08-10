@@ -18,7 +18,7 @@ int SCT;
 /* VARIAVEIS */ 
 
 const int CAPACITY_JSON = 96, TENSAO = 110, CALIBRACAO = 6.0606;
-double ALTURA_RESERVATORIO = 0, CAPACIDADE_RESERVATORIO = 0, KWH = 0;
+long double ALTURA_RESERVATORIO = 0, CAPACIDADE_RESERVATORIO = 0, KW = 0;
 
 /* INSTANCIACAO */ 
 
@@ -34,7 +34,7 @@ void setup() {
     Serial.begin(115200);
     bluetooth.begin("SUSTENAPP - CONTROL");
 
-    xTaskCreatePinnedToCore(taskBluetooth, "TaskBluetooth", 1024, NULL, 2, &TaskBluetooth, 0);
+    xTaskCreatePinnedToCore(taskBluetooth, "TaskBluetooth", 10000, NULL, 1, &TaskBluetooth, 0);
 }
 
 void loop() {
@@ -46,6 +46,7 @@ void loop() {
 void taskBluetooth(void * pvParameters) {
     for (;;) {
         leituraBluetooth();
+        delay(2000);
     }
 }
 
@@ -70,7 +71,7 @@ void leituraBluetooth() {
                         //enviaRelatorio(retornaConsumoHidrico(), "M3");
                     }
                 } else if (retornaStringJSON("tipo") == "eletrico") {
-                    enviaRelatorio(retornaConsumoEletrico(), "KW/H");
+                    enviaRelatorio(retornaConsumoEletrico(), "W");
                 }
             } else if (retornaStringJSON("comando") == "controlador") {
                 controlaDispositivo(retornaIntJSON("porta"));
@@ -82,7 +83,7 @@ void leituraBluetooth() {
                 } else if (retornaStringJSON("tipo") == "dispositivo") {
                     declaracaoDispositivo(retornaIntJSON("porta"));
                 } else if (retornaStringJSON("tipo") == "eletricidade") {
-                    //declaraEletricidade();
+                    declaraEletricidade();
                 }
             } else if (retornaStringJSON("comando") == "disponibilidade") {
                 informaPortaDisponivel();
@@ -100,7 +101,8 @@ void leituraEletrica() {
         return;
     }
 
-    KWH += (IRMS * TENSAO) / 1000;
+    W += (IRMS * TENSAO);
+    Serial.println(W);
 }
 
 /* COMUNICACAO BLUETOOTH */
@@ -113,7 +115,10 @@ void enviaInformacaoBluetooth(String informacao) {
     String JSON_AUXILIAR = "{" + informacao + "}";
     char RETURN[JSON_AUXILIAR.length()];
     memcpy(RETURN, JSON_AUXILIAR.c_str(), JSON_AUXILIAR.length());
-    bluetooth.write((uint8_t * ) RETURN, JSON_AUXILIAR.length());
+
+    if(bluetooth.connected()){
+        bluetooth.write((uint8_t*) RETURN, JSON_AUXILIAR.length());
+    }
 }
 
 /* CONVERSAO JSON */
@@ -124,7 +129,6 @@ void descompactaJSON() {
     DeserializationError error = deserializeJson(JSON, request);
     if (error != DeserializationError::Ok) {
         // enviaInformacaoBluetooth(error.c_str());
-        return;
     }
 }
 
@@ -164,9 +168,9 @@ void controlaDispositivo(int porta) {
 /* STATUS */
 
 double retornaConsumoEletrico() {
-    double KWH_RETURN = KWH;  
-    KWH = 0;
-    return KWH_RETURN;
+    double W_RETURN = W;  
+    W = 0;
+    return W_RETURN;
 }
 
 double retornaVolumeReservatorio() {
@@ -188,15 +192,16 @@ void declaraReservatorio(double capacidade) {
 
 
 void declaraEletricidade() {
-    if(!SCT) {
-        SCT = 21;
-        energia.current(SCT, CALIBRACAO);
-        xTaskCreatePinnedToCore(taskEletrica, "TaskEletrica", 1024, NULL, 1, &TaskEletrica, 1);
-
-        enviaStatus(200, "ELETRICIDADE MONITORAVEL");
+    if(SCT) {
+        enviaStatus(500, "ELETRICIDADE JA ESTA SENDO MONITORADA");
+        return;
     }
 
-    enviaStatus(500, "ELETRICIDADE JA ESTA SENDO MONITORADA");
+    SCT = 21;
+    energia.current(SCT, CALIBRACAO);
+    xTaskCreatePinnedToCore(taskEletrica, "TaskEletrica", 10000, NULL, 1, &TaskEletrica, 1);
+
+    enviaStatus(200, "ELETRICIDADE MONITORAVEL");
 }
 
 

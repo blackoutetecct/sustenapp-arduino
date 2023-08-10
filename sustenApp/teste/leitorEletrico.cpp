@@ -1,7 +1,7 @@
 #include <EmonLib.h>
 
 const int SCT = A0, TENSAO = 110;
-double KW;
+long double W;
 
 EnergyMonitor energia;
 
@@ -12,7 +12,7 @@ void setup() {
 
 void loop() {
   leituraEletrica();
-  Serial.println(KW);
+  Serial.println(W);
 }
 
 void leituraEletrica() {
@@ -22,5 +22,7 @@ void leituraEletrica() {
         return;
     }
 
-    KW = ((IRMS * TENSAO) / 1000);
+    Serial.println(IRMS);
+
+    W = (IRMS * TENSAO);
 }

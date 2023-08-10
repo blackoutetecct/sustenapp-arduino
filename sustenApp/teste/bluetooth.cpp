@@ -7,14 +7,19 @@
 BluetoothSerial bluetooth;
 
 void setup() {
-    bluetooth.begin("ESP32"); //Bluetooth device name
+    bluetooth.begin("ESP32"); 
 }
 
 void loop() {
-    char leitura;
-
     if (bluetooth.available()) {
-        leitura = bluetooth.read();
-        bluetooth.write(leitura);
+        String leitura = bluetooth.readString();
+        enviaInformacaoBluetooth(leitura);
     }
+}
+
+void enviaInformacaoBluetooth(String informacao) {
+    String JSON_AUXILIAR = "{" + informacao + "}";
+    char RETURN[JSON_AUXILIAR.length()];
+    memcpy(RETURN, JSON_AUXILIAR.c_str(), JSON_AUXILIAR.length());
+    bluetooth.write((uint8_t * ) RETURN, JSON_AUXILIAR.length());
 }
