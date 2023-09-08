@@ -71,7 +71,11 @@ void leituraBluetooth() {
                         //enviaRelatorio(retornaConsumoHidrico(), "M3");
                     }
                 } else if (retornaStringJSON("tipo") == "eletrico") {
-                    enviaRelatorio(retornaConsumoEletrico(), "W");
+                    if (retornaBoolJSON("renovavel")) {
+                        // EM PLANEJAMENTO
+                    } else {
+                        enviaRelatorio(retornaConsumoEletrico(), "W");
+                    }
                 }
             } else if (retornaStringJSON("comando") == "controlador") {
                 controlaDispositivo(retornaIntJSON("porta"));
