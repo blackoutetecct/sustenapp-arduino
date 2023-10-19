@@ -1,6 +1,7 @@
 #include "BluetoothSerial.h"
 #include <ArduinoJson.h>
 #include <Ultrasonic.h>
+#include <HardwareSerial.h>
 
 /* BLUETOOTH */
 
@@ -10,7 +11,8 @@
 
 /* SERIAL */
 
-const int HIDIRCO_TX = 17, HIDIRCO_RX = 16, ELETRICO_TX = 0, ELETRICO_RX = 0;
+HardwareSerial serial_hidrico(0);
+HardwareSerial serial_eletrico(1);
 
 /* PORTAS */
 
@@ -29,13 +31,17 @@ Ultrasonic ultrasonic(RESERVATORIO_TRIGGER, RESERVATORIO_ECHO);
 StaticJsonDocument < CAPACITY_JSON > JSON;
 const int LED_ACIONAMENTO = 2;
 
+/* CONTROLE DE LEITURA */
+
+double ULTIMA_LEITURA_HIDRICA = 0, ULTIMA_LEITURA_ELETRICA = 0;
+
 void setup() {
     bluetooth.begin("SUSTENAPP - CONTROL");
 
     /* SERIAL */
     Serial.begin(115200);
-    Serial1.begin(9600, SERIAL_8N1, HIDIRCO_RX, HIDIRCO_TX);
-    Serial2.begin(4800, SERIAL_8N1, ELETRICO_RX, ELETRICO_TX);
+    serial_hidrico.begin(9600);
+    serial_eletrico.begin(4800);
 
     /* LED ACIONAMENTO */
     pinMode(LED_ACIONAMENTO, OUTPUT);
@@ -100,19 +106,31 @@ String recebeInformacaoSerial(String tipo) {
 }
 
 String recebeInformacaoHidrico() {
-    Serial1.println("relatorio_hidrico");
+    serial_hidrico.println("relatorio_hidrico");
 
-    while (Serial1.available()) {
-        return Serial1.readString();
+    while (serial_hidrico.available()) {
+        double leitura = toDouble(serial_hidrico.readString());
+        double estimativa = leitura - ULTIMA_LEITURA_HIDRICA;
+        ULTIMA_LEITURA_HIDRICA = leitura;
+
+        return estimativa;
     }
+
+    enviaStatus(400, "FALHA NA OBTENCAO DE CONSUMO");
 }
 
 String recebeInformacaoEletrico() {
-    Serial2.println("relatorio_eletrico");
+    serial_eletrico.println("relatorio_eletrico");
 
-    while (Serial2.available()) {
-        return Serial2.readString();
+    while (serial_eletrico.available()) {
+        double leitura = toDouble(serial_eletrico.readString());
+        double estimativa = leitura - ULTIMA_LEITURA_ELETRICA;
+        ULTIMA_LEITURA_ELETRICA = leitura;
+
+        return estimativa;
     }
+
+    enviaStatus(400, "FALHA NA OBTENCAO DE CONSUMO");
 }
 
 /* COMUNICACAO BLUETOOTH */
