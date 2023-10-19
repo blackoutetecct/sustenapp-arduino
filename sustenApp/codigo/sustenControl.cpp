@@ -105,11 +105,11 @@ String recebeInformacaoSerial(String tipo) {
     return "";
 }
 
-String recebeInformacaoHidrico() {
+double recebeInformacaoHidrico() {
     serial_hidrico.println("relatorio_hidrico");
 
     while (serial_hidrico.available()) {
-        double leitura = toDouble(serial_hidrico.readString());
+        double leitura = serial_hidrico.readString().toDouble();
         double estimativa = leitura - ULTIMA_LEITURA_HIDRICA;
         ULTIMA_LEITURA_HIDRICA = leitura;
 
@@ -119,11 +119,11 @@ String recebeInformacaoHidrico() {
     enviaStatus(400, "FALHA NA OBTENCAO DE CONSUMO");
 }
 
-String recebeInformacaoEletrico() {
+double recebeInformacaoEletrico() {
     serial_eletrico.println("relatorio_eletrico");
 
     while (serial_eletrico.available()) {
-        double leitura = toDouble(serial_eletrico.readString());
+        double leitura = serial_eletrico.readString().toDouble();
         double estimativa = leitura - ULTIMA_LEITURA_ELETRICA;
         ULTIMA_LEITURA_ELETRICA = leitura;
 
