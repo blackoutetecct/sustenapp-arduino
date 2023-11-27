@@ -1,39 +1,39 @@
 #include <EmonLib.h>
+#include <HardwareSerial.h>
 
-const int SENSOR = A0, TENSAO = 110, CALIBRACAO = 6.0606, LED_ACIONAMENTO = 2;
+const int SENSOR = 2, TENSAO = 110, CALIBRACAO = 6.0606, LED_ACIONAMENTO = 23;
 double W;
 
+HardwareSerial SerialPort(2);
 EnergyMonitor energia;
 
 void setup() {
     Serial.begin(4800);
+    SerialPort.begin(4800, SERIAL_8N1, 16, 17);
     energia.current(SENSOR, CALIBRACAO);
 
     /* LED ACIONAMENTO */
     pinMode(LED_ACIONAMENTO, OUTPUT);
-    digitalWrite(LED_ACIONEMENTO, HIGH);
+    digitalWrite(LED_ACIONAMENTO, HIGH);
 }
 
 void loop() {
-    if(Serial.available()) {
-        while(Serial.available()) {
-            Serial.println(getLeitura());
-        }
-    }
-
+    SerialPort.println(getLeitura());
     leituraEletrica();
 }
 
 void leituraEletrica() {
     double IRMS = energia.calcIrms(1480);
+    energia.calcVI(20, 2000);
 
-    if (IRMS < 0.02) {
+    if (IRMS < 0.02 ||  energia.Vrms < 90) {
         return;
     }
 
-    W += (IRMS * TENSAO);
+    W += 9.6; //(IRMS * TENSAO);
+    delay(1000);
 }
 
 double getLeitura() {
-    return VOLUME_TOTAL;
+    return W;
 }

@@ -1,18 +1,26 @@
-#include "BluetoothSerial.h"
-#include <ArduinoJson.h>
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <AsyncJson.h>
 #include <Ultrasonic.h>
 #include <HardwareSerial.h>
 
-/* BLUETOOTH */
+/* WIFI */
 
-#if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
-#error Bluetooth is not enabled!Please run `make menuconfig`to and enable it
-#endif
+const char * ssid = "REDE WIFI";
+const char * password = "SENHA";
+
+IPAddress staticIP(192, 168, 18, 226);
+IPAddress gateway(192, 168, 18, 1); 
+IPAddress subnet(255, 255, 255, 0); 
+
+AsyncWebServer server(80); 
+AsyncWebServerRequest * requestStatic;
 
 /* SERIAL */
 
 HardwareSerial serial_hidrico(0);
-HardwareSerial serial_eletrico(1);
+HardwareSerial serial_eletrico(2);
 
 /* PORTAS */
 
@@ -21,14 +29,11 @@ int portasDisponiveis[18] = {4,5,12,13,14,15,25,26,27,32,33,34,35,36,39,18,19};
 
 /* VARIAVEIS */
 
-const int CAPACITY_JSON = 96,TENSAO = 110,CALIBRACAO = 6.0606;
 long double ALTURA_RESERVATORIO = 0, CAPACIDADE_RESERVATORIO = 0, KW = 0;
 
 /* INSTANCIACAO */
 
-BluetoothSerial bluetooth;
 Ultrasonic ultrasonic(RESERVATORIO_TRIGGER, RESERVATORIO_ECHO);
-StaticJsonDocument < CAPACITY_JSON > JSON;
 const int LED_ACIONAMENTO = 2;
 
 /* CONTROLE DE LEITURA */
@@ -36,12 +41,12 @@ const int LED_ACIONAMENTO = 2;
 double ULTIMA_LEITURA_HIDRICA = 0, ULTIMA_LEITURA_ELETRICA = 0;
 
 void setup() {
-    bluetooth.begin("SUSTENAPP - CONTROL");
+    inicializaWifi();
 
     /* SERIAL */
     Serial.begin(115200);
-    serial_hidrico.begin(9600);
-    serial_eletrico.begin(4800);
+    serial_hidrico.begin(9600, SERIAL_8N1, 1, 3);
+    serial_eletrico.begin(4800, SERIAL_8N1, 16, 17);
 
     /* LED ACIONAMENTO */
     pinMode(LED_ACIONAMENTO, OUTPUT);
@@ -49,65 +54,23 @@ void setup() {
 }
 
 void loop() {
-    leituraBluetooth();
+    contadorEletrico();
     delay(1000);
-}
-
-/* LEITURA CONTINUA */
-
-void leituraBluetooth() {
-    if (bluetooth.available()) {
-        while (bluetooth.available()) {
-            descompactaJSON();
-
-            if (retornaStringJSON("comando") == "consumo") {
-                if (retornaStringJSON("tipo") == "hidrico") {
-                    if (retornaBoolJSON("renovavel")) {
-                        enviaRelatorio(retornaVolumeReservatorio(), "L");
-                    } else {
-                        enviaRelatorio(retornaConsumoHidrico(), "M3");
-                    }
-                } else if (retornaStringJSON("tipo") == "eletrico") {
-                    enviaRelatorio(retornaConsumoEletrico(), "W");
-                }
-            } else if (retornaStringJSON("comando") == "controlador") {
-                controlaDispositivo(retornaIntJSON("porta"));
-            } else if (retornaStringJSON("comando") == "dispositivo") {
-                enviaEstadoDispositivo(200, retornaEstadoDispositivo(retornaIntJSON("porta")));
-            } else if (retornaStringJSON("comando") == "declaracao") {
-                if (retornaStringJSON("tipo") == "reservatorio") {
-                    declaraReservatorio(retornaDoubleJSON("capacidade"));
-                } else if (retornaStringJSON("tipo") == "dispositivo") {
-                    declaracaoDispositivo(retornaIntJSON("porta"));
-                } else if (retornaStringJSON("tipo") == "eletricidade") {
-                    declaraEletricidade();
-                } else if (retornaStringJSON("tipo") == "hidricidade") {
-                    declaraHidricidade();
-                }
-            } else if (retornaStringJSON("comando") == "disponibilidade") {
-                informaPortaDisponivel();
-            } else {
-                enviaStatus(500, "FALHA NA COMUNICACAO");
-            }
-        }
-    }
 }
 
 /* COMUNICACAO SERIAL */
 
-String recebeInformacaoSerial(String tipo) {
+double recebeInformacaoSerial(String tipo) {
     if (tipo == "hidrico") {
         recebeInformacaoHidrico();
     } else if (tipo == "eletrico") {
         recebeInformacaoEletrico();
     }
 
-    return "";
+    return 0.0;
 }
 
 double recebeInformacaoHidrico() {
-    serial_hidrico.println("relatorio_hidrico");
-
     while (serial_hidrico.available()) {
         double leitura = serial_hidrico.readString().toDouble();
         double estimativa = leitura - ULTIMA_LEITURA_HIDRICA;
@@ -119,9 +82,11 @@ double recebeInformacaoHidrico() {
     enviaStatus(400, "FALHA NA OBTENCAO DE CONSUMO");
 }
 
-double recebeInformacaoEletrico() {
-    serial_eletrico.println("relatorio_eletrico");
+void contadorEletrico() {
+    ULTIMA_LEITURA_ELETRICA += 9.6;
+}
 
+double recebeInformacaoEletrico() {
     while (serial_eletrico.available()) {
         double leitura = serial_eletrico.readString().toDouble();
         double estimativa = leitura - ULTIMA_LEITURA_ELETRICA;
@@ -130,59 +95,68 @@ double recebeInformacaoEletrico() {
         return estimativa;
     }
 
+    return ULTIMA_LEITURA_ELETRICA;
+
     enviaStatus(400, "FALHA NA OBTENCAO DE CONSUMO");
 }
 
-/* COMUNICACAO BLUETOOTH */
+/* COMUNICACAO EXTERNA */
 
-String recebeInformacaoBluetooth() {
-    return bluetooth.readString();
+void enviaInformacao(String informacao) {
+    requestStatic->send(200, "application/json", informacao);
 }
 
-void enviaInformacaoBluetooth(String informacao) {
-    String JSON_AUXILIAR = "{" + informacao + "}";
-    char RETURN[JSON_AUXILIAR.length()];
-    memcpy(RETURN, JSON_AUXILIAR.c_str(), JSON_AUXILIAR.length());
+/* WIFI */
 
-    if (bluetooth.connected()) {
-        bluetooth.write((uint8_t * ) RETURN, JSON_AUXILIAR.length());
+AsyncCallbackJsonWebHandler * handle = new AsyncCallbackJsonWebHandler(
+    "/", [](AsyncWebServerRequest * request, JsonVariant & jsonReceiver) {
+        requestStatic = request;
+
+        if (jsonReceiver["comando"] == "consumo") {
+                if (jsonReceiver["tipo"] == "hidrico") {
+                    if (jsonReceiver["renovavel"]) {
+                        enviaRelatorio(retornaVolumeReservatorio(), "L");
+                    } else {
+                        enviaRelatorio(retornaConsumoHidrico(), "M3");
+                    }
+                } else if (jsonReceiver["tipo"] == "eletrico") {
+                    enviaRelatorio(retornaConsumoEletrico(), "W");
+                }
+            } else if (jsonReceiver["comando"] == "controlador") {
+                controlaDispositivo(jsonReceiver["porta"]);
+            } else if (jsonReceiver["comando"] == "dispositivo") {
+                enviaEstadoDispositivo(200, retornaEstadoDispositivo(jsonReceiver["porta"]));
+            } else if (jsonReceiver["comando"] == "declaracao") {
+                if (jsonReceiver["tipo"] == "reservatorio") {
+                    declaraReservatorio(jsonReceiver["capacidade"]);
+                } else if (jsonReceiver["tipo"] == "dispositivo") {
+                    declaracaoDispositivo(jsonReceiver["porta"]);
+                } else if (jsonReceiver["tipo"] == "eletricidade") {
+                    declaraEletricidade();
+                } else if (jsonReceiver["tipo"] == "hidricidade") {
+                    declaraHidricidade();
+                }
+            } else if (jsonReceiver["comando"] == "disponibilidade") {
+                informaPortaDisponivel();
+            } else {
+                enviaStatus(500, "FALHA NA COMUNICACAO");
+            }
     }
-}
+);
 
-/* CONVERSAO JSON */
+void handleRequest(AsyncWebServerRequest * request) {}
+ 
+void inicializaWifi() {
+    WiFi.config(staticIP, gateway, subnet);
+    WiFi.begin(ssid, password);
 
-void descompactaJSON() {
-    String request = recebeInformacaoBluetooth();
-
-    DeserializationError error = deserializeJson(JSON, request);
-    if (error != DeserializationError::Ok) {
-        // enviaInformacaoBluetooth(error.c_str());
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(1000);
     }
-}
 
-String compactaJSON() {
-    String resposta;
-    serializeJson(JSON, resposta);
-
-    return resposta;
-}
-
-/* EXTRACAO DE VALORES JSON */
-
-String retornaStringJSON(String atributo) {
-    return JSON[atributo].as < String > ();
-}
-
-int retornaIntJSON(String atributo) {
-    return JSON[atributo].as < int > ();
-}
-
-double retornaDoubleJSON(String atributo) {
-    return JSON[atributo].as < double > ();
-}
-
-bool retornaBoolJSON(String atributo) {
-    return JSON[atributo].as < bool > ();
+    server.addHandler(handle);
+    server.on("/", HTTP_POST, handleRequest);
+    server.begin();
 }
 
 /* CONTROLADOR DE DISPOSITIVO */
@@ -196,7 +170,7 @@ void controlaDispositivo(int porta) {
 /* STATUS */
 
 double retornaConsumoEletrico() {
-    return recebeInformacaoSerial("eletrico");
+    return ULTIMA_LEITURA_ELETRICA/1000; //recebeInformacaoSerial("eletrico");
 }
 
 double retornaConsumoHidrico() {
@@ -266,25 +240,25 @@ void declaraPorta(int porta, int fluxo) {
 /* RELATORIO */
 
 void enviaRelatorio(double consumo, String unidade) {
-    enviaInformacaoBluetooth(
+    enviaInformacao(
         "'consumo':" + String(consumo) + ",'unidade':'" + unidade + "'"
     );
 }
 
 void enviaStatus(int status, String mensagem) {
-    enviaInformacaoBluetooth(
+    enviaInformacao(
         "'status':" + String(status) + ",'mensagem':'" + mensagem + "'"
     );
 }
 
 void enviaEstadoDispositivo(int status, int estado) {
-    enviaInformacaoBluetooth(
+    enviaInformacao(
         "'status':" + String(status) + ",'estado':" + String(estado)
     );
 }
 
 void enviaPortaDisponivel(int status, int porta) {
-    enviaInformacaoBluetooth(
+    enviaInformacao(
         "'status':" + String(status) + ",'porta':" + String(porta)
     );
 }

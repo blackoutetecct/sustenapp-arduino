@@ -1,26 +1,26 @@
+#include <HardwareSerial.h>
+
 const float FATOR_CALIBRACAO = 7.5;
-const int SENSOR = 15, LED_ACIONAMENTO = 2;
+const int SENSOR = 2, LED_ACIONAMENTO = 23;
 
 double VOLUME_TOTAL = 0;
 int CONTADOR_AGUA = 0, INTERRUPCAO_SENSOR = 0;
 unsigned long ULTIMA_EXECUCAO = 0;
 
+HardwareSerial SerialPort(2);
+
 void setup() {
     Serial.begin(9600);
+    SerialPort.begin(9600, SERIAL_8N1, 1, 3);
     pinMode(SENSOR, INPUT_PULLUP);
 
     /* LED ACIONAMENTO */
     pinMode(LED_ACIONAMENTO, OUTPUT);
-    digitalWrite(LED_ACIONEMENTO, HIGH);
+    digitalWrite(LED_ACIONAMENTO, HIGH);
 }
 
 void loop() {
-    if(Serial.available()) {
-        while(Serial.available()) {
-            Serial.println(getLeitura());
-        }
-    }
-
+    SerialPort.println(getLeitura());
     leituraHidrica();
 }
 
