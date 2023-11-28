@@ -33,7 +33,7 @@ void leituraHidrica() {
         double FLUXO = ((1000.0 / INTERVALO) * CONTADOR_AGUA) / FATOR_CALIBRACAO;
         double VOLUME = FLUXO / 60;
 
-        VOLUME_TOTAL += VOLUME / 100; //(VOLUME / 1000);
+        VOLUME_TOTAL += VOLUME / 1000; //(VOLUME / 1000);
         CONTADOR_AGUA = 0;
         ULTIMA_EXECUCAO = millis();
 
