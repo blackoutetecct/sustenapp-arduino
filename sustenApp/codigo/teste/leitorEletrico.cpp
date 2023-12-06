@@ -1,6 +1,6 @@
 #include <EmonLib.h>
 
-const int SCT = A1, TENSAO = 110;
+const int SCT = 2, TENSAO = 110;
 double WH;
 
 EnergyMonitor energia;
